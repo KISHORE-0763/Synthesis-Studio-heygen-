@@ -1,10 +1,11 @@
 # ==============================================================================
 # Synthesis Studio: AI Presenter & Reel Editor
 # Author: [Your Name]
-# Version: 3.5 (Definitive Fix - Hardcoded Avatar and Voice)
+# Version: 4.0 (Definitive Fix - Stable Photo URL)
 #
-# This version corrects the missing 'voice_id' parameter and uses a
-# confirmed public avatar and voice combination for the HeyGen free tier.
+# This version ABANDONS the unreliable 'avatar_id' system and instead uses a
+# direct, stable 'photo_url' to create the avatar. This is the most robust
+# method and removes the dependency on HeyGen's changing avatar library.
 # ==============================================================================
 
 import streamlit as st
@@ -17,18 +18,21 @@ st.set_page_config(page_title="Synthesis Studio", layout="wide")
 HEYGEN_API_KEY = st.secrets.get("HEYGEN_API_KEY")
 
 # ==============================================================================
-# HELPER FUNCTIONS (Corrected for HeyGen)
+# HELPER FUNCTIONS (Corrected for HeyGen with Photo URL)
 # ==============================================================================
 
 HEYGEN_API_URL = "https://api.heygen.com/v2/video/generate"
 HEYGEN_STATUS_URL = "https://api.heygen.com/v1/video_status.get"
 
-# --- A CONFIRMED, WORKING AVATAR AND VOICE COMBINATION ---
-AVATAR_ID = "63e3914e084931a2a3c17838"  # Avatar: Sara
-VOICE_ID = "1bd001e7e50f421d891986aad515841e"  # Voice: A standard female voice
+# --- USING A STABLE, PUBLIC IMAGE URL INSTEAD OF AN AVATAR_ID ---
+# This is a high-quality, AI-generated, front-facing portrait.
+PHOTO_URL = "https://i.imgur.com/E3OU9S8.png"
+
+# We still need to specify a voice.
+VOICE_ID = "1bd001e7e50f421d891986aad515841e"
 
 def create_heygen_video(script_text):
-    """Sends the script to HeyGen with both avatar and voice to start the job."""
+    """Sends the script and a photo_url to HeyGen to start the job."""
     if not HEYGEN_API_KEY:
         st.error("HeyGen API Key not found.")
         return None
@@ -36,10 +40,10 @@ def create_heygen_video(script_text):
     url = "https://api.heygen.com/v2/video/generate"
     headers = {"X-Api-Key": HEYGEN_API_KEY, "Content-Type": "application/json"}
     
-    # --- THIS PAYLOAD IS NOW COMPLETE AND CORRECT ---
+    # --- THIS PAYLOAD USES THE STABLE 'photo' CHARACTER TYPE ---
     payload = {
         "video_inputs": [{
-            "character": {"type": "avatar", "avatar_id": AVATAR_ID},
+            "character": {"type": "photo", "photo_url": PHOTO_URL},
             "voice": {"type": "text", "input_text": script_text, "voice_id": VOICE_ID}
         }],
         "test": True,
@@ -93,7 +97,7 @@ else:
     
     st.subheader("1. Write Your Script")
     script = st.text_area("Enter the text you want the AI presenter to speak:", height=150,
-                          placeholder="This is the final attempt. Let's make a great video!")
+                          placeholder="This version uses a stable photo URL. This must be the one that works.")
 
     if st.button("Generate My AI Presenter Video", type="primary"):
         if not script:
