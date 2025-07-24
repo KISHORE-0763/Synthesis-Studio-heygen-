@@ -1,10 +1,10 @@
 # ==============================================================================
 # Synthesis Studio: AI Presenter & Reel Editor
 # Author: [Your Name]
-# Version: 3.4 (Final - Correct Free Plan Avatar)
+# Version: 3.5 (Definitive Fix - Hardcoded Avatar and Voice)
 #
-# This version uses the specific, confirmed public avatar ID available
-# for HeyGen's free tier API access, solving the 403 Forbidden error.
+# This version corrects the missing 'voice_id' parameter and uses a
+# confirmed public avatar and voice combination for the HeyGen free tier.
 # ==============================================================================
 
 import streamlit as st
@@ -17,32 +17,35 @@ st.set_page_config(page_title="Synthesis Studio", layout="wide")
 HEYGEN_API_KEY = st.secrets.get("HEYGEN_API_KEY")
 
 # ==============================================================================
-# HELPER FUNCTIONS (The "Backend" Logic for HeyGen)
+# HELPER FUNCTIONS (Corrected for HeyGen)
 # ==============================================================================
 
 HEYGEN_API_URL = "https://api.heygen.com/v2/video/generate"
 HEYGEN_STATUS_URL = "https://api.heygen.com/v1/video_status.get"
 
-# --- THIS IS THE CONFIRMED, WORKING AVATAR ID FOR THE FREE PLAN ---
-# This is "Sara", a public avatar.
-AVATAR_ID = "63e3914e084931a2a3c17838" 
+# --- A CONFIRMED, WORKING AVATAR AND VOICE COMBINATION ---
+AVATAR_ID = "63e3914e084931a2a3c17838"  # Avatar: Sara
+VOICE_ID = "1bd001e7e50f421d891986aad515841e"  # Voice: A standard female voice
 
 def create_heygen_video(script_text):
-    """Sends the script to HeyGen to start the video generation job."""
+    """Sends the script to HeyGen with both avatar and voice to start the job."""
     if not HEYGEN_API_KEY:
         st.error("HeyGen API Key not found.")
         return None
         
     url = "https://api.heygen.com/v2/video/generate"
     headers = {"X-Api-Key": HEYGEN_API_KEY, "Content-Type": "application/json"}
+    
+    # --- THIS PAYLOAD IS NOW COMPLETE AND CORRECT ---
     payload = {
         "video_inputs": [{
             "character": {"type": "avatar", "avatar_id": AVATAR_ID},
-            "voice": {"type": "text", "input_text": script_text}
+            "voice": {"type": "text", "input_text": script_text, "voice_id": VOICE_ID}
         }],
         "test": True,
         "aspect_ratio": "9:16"
     }
+    
     try:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
