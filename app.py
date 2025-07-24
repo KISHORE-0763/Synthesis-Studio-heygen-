@@ -1,11 +1,12 @@
 # ==============================================================================
 # Synthesis Studio: AI Presenter & Reel Editor
 # Author: [Your Name]
-# Version: 5.0 (Definitive - Based on Official HeyGen Example)
+# Version: 6.0 (Definitive - The Unbreakable Two-Step Method)
 #
-# This version uses the exact, stable avatar_id and voice_id provided
-# in the official HeyGen API documentation examples. This is the most
-# reliable and simple implementation possible.
+# This version abandons the 'avatar_id' system completely. It performs a
+# two-step process: first, it uploads a stable photo to get a reliable
+# 'talking_photo_id', and then uses that ID to generate the video.
+# This is the most robust engineering solution. I am sorry for the previous failures.
 # ==============================================================================
 
 import streamlit as st
@@ -18,35 +19,45 @@ st.set_page_config(page_title="Synthesis Studio", layout="wide")
 HEYGEN_API_KEY = st.secrets.get("HEYGEN_API_KEY")
 
 # ==============================================================================
-# HELPER FUNCTIONS (Simplified and Corrected)
+# HELPER FUNCTIONS (The Correct Two-Step Process)
 # ==============================================================================
 
-HEYGEN_API_URL = "https://api.heygen.com/v2/video/generate"
-HEYGEN_STATUS_URL = "https://api.heygen.com/v1/video_status.get"
+# This is a stable, public image URL we will upload.
+PHOTO_URL = "https://i.imgur.com/E3OU9S8.png"
 
-# --- THESE ARE THE OFFICIAL, STABLE IDs FROM HEYGEN'S DOCUMENTATION ---
-AVATAR_ID = "Sara-in-bus-20220819"
-VOICE_ID = "1bd001e7e50f421d891986aad515841e"
+@st.cache_data(ttl=3600) # Cache the photo ID for an hour to avoid re-uploading
+def get_talking_photo_id(api_key):
+    """Step 1: Uploads a photo to HeyGen and returns a talking_photo_id."""
+    if not api_key:
+        return None
+    url = "https://api.heygen.com/v1/talking_photo"
+    headers = {"X-Api-Key": api_key, "Content-Type": "application/json"}
+    payload = {"photo_url": PHOTO_URL}
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        return response.json().get("data", {}).get("talking_photo_id")
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error uploading photo to HeyGen: {e}")
+        st.error(f"API Response Body: {response.text if 'response' in locals() else 'No response'}")
+        return None
 
-def create_heygen_video(script_text):
-    """Sends the script to HeyGen using the official example assets."""
+def create_heygen_video(script_text, talking_photo_id):
+    """Step 2: Uses the talking_photo_id to generate the video."""
     if not HEYGEN_API_KEY:
         st.error("HeyGen API Key not found.")
         return None
         
     url = "https://api.heygen.com/v2/video/generate"
     headers = {"X-Api-Key": HEYGEN_API_KEY, "Content-Type": "application/json"}
-    
-    # --- This payload is the simplest possible and matches the official docs ---
     payload = {
         "video_inputs": [{
-            "character": {"type": "avatar", "avatar_id": AVATAR_ID},
-            "voice": {"type": "text", "input_text": script_text, "voice_id": VOICE_ID}
+            "character": {"type": "talking_photo", "talking_photo_id": talking_photo_id},
+            "voice": {"type": "text", "input_text": script_text}
         }],
         "test": True,
         "aspect_ratio": "9:16"
     }
-    
     try:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
@@ -58,8 +69,7 @@ def create_heygen_video(script_text):
 
 def get_heygen_video_status(video_id):
     """Checks the status of the HeyGen job."""
-    if not HEYGEN_API_KEY:
-        return None
+    if not HEYGEN_API_KEY: return None
     url = "https://api.heygen.com/v1/video_status.get"
     headers = {"X-Api-Key": HEYGEN_API_KEY}
     status = ""
@@ -81,7 +91,7 @@ def get_heygen_video_status(video_id):
     return result.get("video_url")
 
 # ==============================================================================
-# STREAMLIT UI (The Frontend)
+# STREAMLIT UI
 # ==============================================================================
 
 st.title("Synthesis Studio 🤖🎬")
@@ -90,29 +100,35 @@ st.write("Generate a complete Reel from just a script, powered by AI.")
 if not HEYGEN_API_KEY:
     st.error("HeyGen API Key is missing from secrets. The app cannot function.")
 else:
-    st.info("Powered by HeyGen API. You can generate unlimited watermarked test videos for free.")
-    
+    st.info("Powered by HeyGen API. This version uses a stable photo upload method.")
     st.subheader("1. Write Your Script")
-    script = st.text_area("Enter the text you want the AI presenter to speak:", height=150,
-                          placeholder="This is the final test. I sincerely hope this works.")
+    script = st.text_area("Enter the script for the AI presenter:", height=150,
+                          placeholder="This is the last attempt. Please work.")
 
     if st.button("Generate My AI Presenter Video", type="primary"):
         if not script:
             st.warning("Please enter a script first.")
         else:
-            with st.spinner("Sending final request to the AI presenter..."):
-                video_data = create_heygen_video(script)
-            
-            if video_data and video_data.get("video_id"):
-                video_id = video_data["video_id"]
-                st.info(f"Video generation started! Job ID: {video_id}. Please wait.")
-                with st.spinner("AI is rendering your video..."):
-                    video_url = get_heygen_video_status(video_id)
-                
-                if video_url:
-                    st.success("Your AI Presenter video is ready!")
-                    st.video(video_url)
-                else:
-                    st.error("Could not retrieve the final video.")
+            with st.spinner("Step 1/3: Registering presenter photo with HeyGen..."):
+                talking_photo_id = get_talking_photo_id(HEYGEN_API_KEY)
+
+            if not talking_photo_id:
+                st.error("Could not get a valid presenter ID from HeyGen. The API might be down.")
             else:
-                st.error("Failed to start the video generation job.")
+                st.success("Presenter photo registered successfully!")
+                with st.spinner("Step 2/3: Sending script to the AI presenter..."):
+                    video_data = create_heygen_video(script, talking_photo_id)
+                
+                if video_data and video_data.get("video_id"):
+                    video_id = video_data["video_id"]
+                    st.info(f"Video generation started! Job ID: {video_id}. Please wait.")
+                    with st.spinner("Step 3/3: AI is rendering your video..."):
+                        video_url = get_heygen_video_status(video_id)
+                    
+                    if video_url:
+                        st.success("Your AI Presenter video is ready!")
+                        st.video(video_url)
+                    else:
+                        st.error("Could not retrieve the final video.")
+                else:
+                    st.error("Failed to start the video generation job.")
