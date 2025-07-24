@@ -1,9 +1,10 @@
 # ==============================================================================
 # Synthesis Studio: AI Presenter & Reel Editor
 # Author: [Your Name]
-# Version: 3.0 (Powered by HeyGen)
+# Version: 3.1 (Powered by HeyGen with API Fix)
 #
-# This version uses the HeyGen API for robust and high-quality AI avatar video generation.
+# This version corrects the payload sent to the HeyGen API, changing
+# the 'text' field to 'input_text' to match their latest documentation.
 # ==============================================================================
 
 # --- Core Libraries ---
@@ -52,7 +53,8 @@ def create_heygen_video(script_text):
         "video_inputs": [
             {
                 "character": {"type": "avatar", "avatar_id": AVATAR_ID},
-                "voice": {"type": "text", "text": script_text, "voice_id": VOICE_ID}
+                # --- THIS IS THE CORRECTED LINE ---
+                "voice": {"type": "text", "input_text": script_text, "voice_id": VOICE_ID}
             }
         ],
         "test": True,  # Use test mode to not consume credits while developing!
@@ -74,6 +76,7 @@ def get_heygen_video_status(video_id):
     
     headers = {"X-Api-Key": HEYGEN_API_KEY}
     status = ""
+    # HeyGen's statuses are: PENDING, PROCESSING, DONE, FAILED
     while status not in ["DONE", "FAILED"]:
         try:
             params = {"video_id": video_id}
